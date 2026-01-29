@@ -1,9 +1,13 @@
-# NEPSE Prime Dashboard
+# FLUX Prime Dashboard
 
 ## Overview
-Enterprise React dashboard for the NEPSE HFT Engine.
+Enterprise React dashboard for the FLUX HFT Engine. This is the **Client Component** of the FLUX Ecosystem.
 - **Stack**: React, Vite, Recharts, Lucide
-- **Connection**: Connects to `ws://localhost:9000`
+
+## Requirements
+This project requires a running instance of the FLUX Core Engine to display data.
+- **Backend**: [flux-core](../flux-core) (Must be running on port 9000)
+- **Data Source**: Connects to `ws://localhost:9000` via `nepse-stream` protocol.
 
 ## How to Run
 ```bash
