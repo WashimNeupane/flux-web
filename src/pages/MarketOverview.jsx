@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useEngine } from '../context/EngineContext';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { Activity, ArrowUp, ArrowDown } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 /* --- UI COMPONENTS --- */
 const Panel = ({ title, children, style }) => (
@@ -21,9 +20,6 @@ const Panel = ({ title, children, style }) => (
 );
 
 const TickerRow = ({ symbol, data, onClick, active }) => {
-    // Determine color based on price vs previous (mock logic)
-    // In real app, we would store 'prevClose'
-    const isUp = true;
     return (
         <div
             onClick={onClick}
@@ -35,17 +31,23 @@ const TickerRow = ({ symbol, data, onClick, active }) => {
             }}
         >
             <div style={{ fontWeight: 700, width: '60px' }}>{symbol}</div>
-            <div className="mono" style={{ flex: 1, textAlign: 'right', color: isUp ? 'var(--up)' : 'var(--down)' }}>
+            <div className="mono" style={{ flex: 1, textAlign: 'right', color: 'var(--up)' }}>
                 {data.price?.toFixed(2)}
             </div>
             <div className="mono" style={{ width: '60px', textAlign: 'right', fontSize: '10px', color: 'var(--text-dim)' }}>
-                {data.volume}
+                {data.volume || '-'}
             </div>
         </div>
     );
 };
 
 const TIMEFRAMES = ['1D', '1W', '1M', '3M', '1Y', 'ALL'];
+
+// Simple seeded random for deterministic mock data
+const seededRandom = (seed) => {
+    const x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+};
 
 /* --- MAIN VIEW --- */
 export default function MarketOverview() {
@@ -57,27 +59,47 @@ export default function MarketOverview() {
     const tickerData = tickers[activeSymbol];
     const latestPrice = tickerData?.price || 0;
 
-    // --- MOCK HISTORICAL DATA GENERATOR ---
-    // In a real app, this would fetch from REST API: /api/history?sym=NABIL&tf=1M
-    const getChartData = () => {
-        if (!tickerData) return [];
+    // --- GENERATE CHART DATA ---
+    // useMemo ensures we don't regenerate on every render
+    const chartData = useMemo(() => {
+        if (!tickerData || !activeSymbol) return [];
+
         // If 1D, use live ticks from context
-        if (timeframe === '1D') return tickerData.history ? tickerData.history.map((p, i) => ({ time: i, price: p })) : [];
+        if (timeframe === '1D') {
+            return (tickerData.history || []).map((p, i) => {
+                const now = new Date();
+                now.setMinutes(now.getMinutes() - (tickerData.history.length - i));
+                return { time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), price: p };
+            });
+        }
 
         // For other timeframes, generate deterministic mock data
-        const points = timeframe === '1W' ? 50 : timeframe === '1M' ? 100 : 200;
-        const volatility = timeframe === '1W' ? 0.02 : 0.1;
+        const config = { '1W': { points: 7, label: 'day' }, '1M': { points: 30, label: 'day' }, '3M': { points: 90, label: 'day' }, '1Y': { points: 365, label: 'day' }, 'ALL': { points: 500, label: 'day' } };
+        const { points } = config[timeframe] || { points: 100 };
+        const volatility = 0.015;
+
+        // Seed based on symbol string
+        let seed = activeSymbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
         let price = latestPrice;
         const data = [];
-        // Generate backwards
-        for (let i = 0; i < points; i++) {
-            data.unshift({ time: i, price: price });
-            price = price + (price * (Math.random() - 0.5) * volatility);
-        }
-        return data;
-    };
+        const today = new Date();
 
-    const chartData = getChartData();
+        for (let i = points - 1; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(date.getDate() - i);
+            const label = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+            data.push({ time: label, price: Math.round(price * 100) / 100 });
+
+            // Walk price backwards deterministically
+            seed++;
+            price = price / (1 + (seededRandom(seed) - 0.5) * volatility);
+        }
+
+        return data;
+    }, [activeSymbol, timeframe, latestPrice, tickerData]);
+
     const startPrice = chartData.length > 0 ? chartData[0].price : latestPrice;
     const change = latestPrice - startPrice;
     const changePercent = startPrice > 0 ? (change / startPrice) * 100 : 0;
@@ -99,7 +121,7 @@ export default function MarketOverview() {
                         <div>
                             <span style={{ fontSize: '32px', fontWeight: 300, fontFamily: 'Roboto Mono' }}>{latestPrice.toLocaleString()}</span>
                             <span style={{ marginLeft: '10px', color: change >= 0 ? 'var(--up)' : 'var(--down)', fontSize: '14px' }}>
-                                {change >= 0 ? '+' : ''}{change.toFixed(2)} ({changePercent.toFixed(2)}%)
+                                {change >= 0 ? '+' : ''}{change.toFixed(2)} ({changePercent >= 0 ? '+' : ''}{changePercent.toFixed(2)}%)
                             </span>
                             <div style={{ marginTop: '8px', display: 'flex', gap: '4px' }}>
                                 {TIMEFRAMES.map(tf => (
@@ -119,25 +141,30 @@ export default function MarketOverview() {
                         </div>
                         <div style={{ display: 'flex', gap: '15px' }}>
                             <div style={{ textAlign: 'right' }}><div style={{ color: 'var(--text-dim)', fontSize: '10px' }}>OPEN</div><div>{chartData.length > 0 ? chartData[0].price.toFixed(2) : '-'}</div></div>
-                            <div style={{ textAlign: 'right' }}><div style={{ color: 'var(--text-dim)', fontSize: '10px' }}>HIGH</div><div>{(latestPrice * 1.02).toFixed(2)}</div></div>
-                            <div style={{ textAlign: 'right' }}><div style={{ color: 'var(--text-dim)', fontSize: '10px' }}>LOW</div><div>{(latestPrice * 0.98).toFixed(2)}</div></div>
+                            <div style={{ textAlign: 'right' }}><div style={{ color: 'var(--text-dim)', fontSize: '10px' }}>HIGH</div><div>{chartData.length > 0 ? Math.max(...chartData.map(d => d.price)).toFixed(2) : '-'}</div></div>
+                            <div style={{ textAlign: 'right' }}><div style={{ color: 'var(--text-dim)', fontSize: '10px' }}>LOW</div><div>{chartData.length > 0 ? Math.min(...chartData.map(d => d.price)).toFixed(2) : '-'}</div></div>
                         </div>
                     </div>
                     <div style={{ flex: 1, paddingRight: '10px' }}>
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={chartData}>
+                            <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor={change >= 0 ? "var(--up)" : "var(--down)"} stopOpacity={0.1} />
+                                        <stop offset="5%" stopColor={change >= 0 ? "var(--up)" : "var(--down)"} stopOpacity={0.15} />
                                         <stop offset="95%" stopColor={change >= 0 ? "var(--up)" : "var(--down)"} stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <XAxis dataKey="time" hide />
-                                <YAxis domain={['auto', 'auto']} orientation="right" tick={{ fill: 'var(--text-dim)', fontSize: 10 }} stroke="var(--border)" />
+                                <XAxis
+                                    dataKey="time"
+                                    tick={{ fill: 'var(--text-dim)', fontSize: 10 }}
+                                    stroke="var(--border)"
+                                    interval="preserveStartEnd"
+                                    tickLine={false}
+                                />
+                                <YAxis domain={['auto', 'auto']} orientation="right" tick={{ fill: 'var(--text-dim)', fontSize: 10 }} stroke="var(--border)" tickLine={false} />
                                 <Tooltip
                                     contentStyle={{ background: '#000', border: '1px solid var(--border)' }}
                                     itemStyle={{ color: 'var(--text-primary)' }}
-                                    labelStyle={{ display: 'none' }}
                                 />
                                 <Area
                                     type="monotone"
@@ -164,18 +191,18 @@ export default function MarketOverview() {
                     </div>
                     {[...Array(10)].map((_, i) => (
                         <div key={i} style={{ display: 'flex', fontSize: '12px', padding: '2px 5px' }} className="mono">
-                            <div style={{ flex: 1, color: 'var(--up)' }}>{(Math.random() * 100).toFixed(0)}</div>
+                            <div style={{ flex: 1, color: 'var(--up)' }}>{50 + i * 10}</div>
                             <div style={{ flex: 1, textAlign: 'center', color: '#fff' }}>{(latestPrice - (i * 0.5)).toFixed(2)}</div>
-                            <div style={{ flex: 1, textAlign: 'right', color: 'var(--down)' }}>{(Math.random() * 100).toFixed(0)}</div>
+                            <div style={{ flex: 1, textAlign: 'right', color: 'var(--down)' }}>{60 + i * 8}</div>
                         </div>
                     ))}
                 </Panel>
                 <Panel title="Recent Trades" style={{ flex: 1 }}>
                     {[...Array(15)].map((_, i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 8px', fontSize: '11px', borderBottom: '1px solid #222' }} className="mono">
-                            <span style={{ color: 'var(--text-dim)' }}>10:42:{10 + i}</span>
-                            <span style={{ color: Math.random() > 0.5 ? 'var(--up)' : 'var(--down)' }}>{latestPrice.toFixed(2)}</span>
-                            <span>{Math.floor(Math.random() * 500)}</span>
+                            <span style={{ color: 'var(--text-dim)' }}>10:42:{String(10 + i).padStart(2, '0')}</span>
+                            <span style={{ color: i % 2 === 0 ? 'var(--up)' : 'var(--down)' }}>{(latestPrice + (i % 2 === 0 ? 0.1 : -0.1)).toFixed(2)}</span>
+                            <span>{100 + i * 20}</span>
                         </div>
                     ))}
                 </Panel>
