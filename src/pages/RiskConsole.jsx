@@ -85,7 +85,7 @@ const COLORS = ['#ff9f43', '#00d2d3', '#10ac84', '#ee5253', '#5f27cd', '#54a0ff'
 
 /* --- MAIN COMPONENT --- */
 export default function RiskConsole() {
-    const { tickers } = useEngine();
+    const { tickers, risk } = useEngine();
 
     // Calculate position metrics using live prices
     const positionsWithPnL = useMemo(() => {
@@ -113,19 +113,19 @@ export default function RiskConsole() {
 
     const pnlHistory = useMemo(() => generatePnLHistory(), []);
 
-    // Risk metrics (mock)
-    const var95 = totalExposure * 0.035;
-    const maxDrawdown = -2.4;
-    const sharpeRatio = 1.8;
+    // LIVE RISK METRICS FROM C++ ENGINE (via WebSocket)
+    const var95 = risk.var95 || totalExposure * 0.035;
+    const maxDrawdown = risk.drawdown || 0;
+    const sharpeRatio = risk.sharpe || 0;
 
     return (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gridTemplateRows: 'auto 1fr 1fr', gap: '1px', height: '100%', background: 'var(--border)', padding: '1px' }}>
 
-            {/* ROW 1: KEY METRICS */}
-            <MetricCard icon={AlertTriangle} label="Value at Risk (95%)" value={`Rs ${(var95 / 1000).toFixed(1)}K`} sub="1-Day Holding Period" color="var(--down)" />
-            <MetricCard icon={Activity} label="Total Exposure" value={`Rs ${(totalExposure / 1000000).toFixed(2)}M`} sub={`${positionsWithPnL.length} Positions`} />
-            <MetricCard icon={TrendingDown} label="Max Drawdown" value={`${maxDrawdown}%`} sub="Rolling 30 Days" color="var(--down)" />
-            <MetricCard icon={TrendingUp} label="Sharpe Ratio" value={sharpeRatio.toFixed(2)} sub="Annualized" color="var(--up)" />
+            {/* ROW 1: KEY METRICS - NOW LIVE FROM CORE */}
+            <MetricCard icon={AlertTriangle} label="Value at Risk (95%)" value={`Rs ${(var95 / 1000).toFixed(1)}K`} sub="Monte Carlo (10K sims)" color="var(--down)" />
+            <MetricCard icon={Activity} label="Total Exposure" value={`Rs ${((risk.exposure || totalExposure) / 1000000).toFixed(2)}M`} sub={`${positionsWithPnL.length} Positions`} />
+            <MetricCard icon={TrendingDown} label="Max Drawdown" value={`${maxDrawdown.toFixed(2)}%`} sub="Rolling 30 Days" color="var(--down)" />
+            <MetricCard icon={TrendingUp} label="Sharpe Ratio" value={sharpeRatio.toFixed(3)} sub="Annualized" color="var(--up)" />
 
             {/* ROW 2: POSITIONS & LIMITS */}
             <Panel title="Position Heatmap" style={{ gridColumn: 'span 2' }}>

@@ -32,7 +32,7 @@ const NavItem = ({ icon: Icon, label, active, onClick }) => (
 export default function Layout() {
     const [activeTab, setActiveTab] = useState('overview');
     const [time, setTime] = useState(new Date());
-    const { status } = useEngine();
+    const { status, dataMode } = useEngine();
 
     useEffect(() => {
         const timer = setInterval(() => setTime(new Date()), 1000);
@@ -60,9 +60,19 @@ export default function Layout() {
 
                 <div style={{ flex: 1 }}></div>
 
-                <div style={{ padding: '0 20px', display: 'flex', alignItems: 'center', gap: '20px', fontSize: '12px' }}>
+                <div style={{ padding: '0 20px', display: 'flex', alignItems: 'center', gap: '15px', fontSize: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: status === 'CONNECTED' ? 'var(--up)' : 'var(--down)' }}>
                         <Server size={12} /> {status}
+                    </div>
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        padding: '2px 8px',
+                        background: dataMode === 'SIMULATED' ? 'rgba(0, 210, 211, 0.2)' : 'rgba(255, 159, 67, 0.2)',
+                        border: `1px solid ${dataMode === 'SIMULATED' ? 'var(--accent-secondary)' : 'var(--accent-primary)'}`,
+                        color: dataMode === 'SIMULATED' ? 'var(--accent-secondary)' : 'var(--accent-primary)',
+                        fontSize: '10px', fontWeight: 600
+                    }}>
+                        {dataMode === 'SIMULATED' ? '● SIM' : '● LIVE'}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-dim)' }}>
                         <Clock size={12} /> {time.toLocaleTimeString()}
@@ -90,7 +100,7 @@ export default function Layout() {
                     NOTIFICATIONS
                 </div>
                 <div className="mono" style={{ padding: '0 10px', fontSize: '11px', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
-                    SYSTEM: Connected to Flux Core v1.0.0 [ws://localhost:9000] ... DATA FEED STABLE ... LATENCY: 2ms
+                    SYSTEM: Connected to Flux Core v2.1 [ws://localhost:9000] ... DATA FEED {dataMode} ... LATENCY: 2ms
                 </div>
             </div>
         </div>

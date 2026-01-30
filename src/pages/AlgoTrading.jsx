@@ -179,12 +179,13 @@ const generateSignals = () => {
 
 /* --- MAIN COMPONENT --- */
 export default function AlgoTrading() {
-    const { tickers } = useEngine();
+    const { tickers, signals: liveSignals } = useEngine();
     const [selectedStrategy, setSelectedStrategy] = useState(STRATEGIES[0]);
     const [strategies, setStrategies] = useState(STRATEGIES);
 
     const backtestData = useMemo(() => generateBacktestData(), [selectedStrategy.id]);
-    const signals = useMemo(() => generateSignals(), []);
+    // Use LIVE signals from C++ engine, fallback to mock if empty
+    const signals = liveSignals.length > 0 ? liveSignals : useMemo(() => generateSignals(), []);
     const formulaInfo = STRATEGY_FORMULAS[selectedStrategy.type] || STRATEGY_FORMULAS['Mean Reversion'];
 
     const toggleStrategy = (id) => {
@@ -279,10 +280,10 @@ export default function AlgoTrading() {
                             <span style={{ width: '70px', color: 'var(--text-dim)' }}>{sig.time}</span>
                             <span style={{ width: '60px', fontWeight: 600 }}>{sig.symbol}</span>
                             <span style={{ width: '45px', color: sig.side === 'BUY' ? 'var(--up)' : 'var(--down)' }}>{sig.side}</span>
-                            <span style={{ width: '70px' }}>{sig.price}</span>
-                            <span style={{ width: '50px' }}>{sig.qty}</span>
+                            <span style={{ width: '70px' }}>{typeof sig.price === 'number' ? sig.price.toFixed(2) : sig.price}</span>
+                            <span style={{ width: '50px' }}>{sig.zscore ? `z=${sig.zscore.toFixed(2)}` : (sig.qty || '-')}</span>
                             <span style={{ flex: 1, color: 'var(--text-dim)' }}>{sig.strategy}</span>
-                            <span style={{ width: '60px', color: sig.status === 'FILLED' ? 'var(--up)' : 'var(--accent-primary)' }}>{sig.status}</span>
+                            <span style={{ width: '60px', color: sig.status === 'FILLED' || sig.status === 'GENERATED' ? 'var(--up)' : 'var(--accent-primary)' }}>{sig.status}</span>
                         </div>
                     ))}
                 </div>
