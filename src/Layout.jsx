@@ -2,6 +2,7 @@ import { LayoutDashboard, ShieldAlert, Zap, FileText, Settings, Activity, Server
 import React, { useState, useEffect } from 'react';
 import MarketOverview from './pages/MarketOverview';
 import RiskConsole from './pages/RiskConsole';
+import ComplianceLogs from './pages/ComplianceLogs';
 import { useEngine } from './context/EngineContext';
 
 const NavItem = ({ icon: Icon, label, active, onClick }) => (
@@ -79,7 +80,7 @@ export default function Layout() {
                 {activeTab === 'overview' && <MarketOverview />}
                 {activeTab === 'risk' && <RiskConsole />}
                 {activeTab === 'algo' && <div className="mono" style={{ padding: '20px', color: 'var(--text-dim)' }}>// ALGO TRADING MODULE NOT LOADED</div>}
-                {activeTab === 'compliance' && <div className="mono" style={{ padding: '20px', color: 'var(--text-dim)' }}>// COMPLIANCE AUDIT LOGS OFFLINE</div>}
+                {activeTab === 'compliance' && <ComplianceLogs />}
             </div>
 
             {/* TICKER FOOTER */}
