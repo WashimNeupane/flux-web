@@ -1,58 +1,94 @@
-
-import { LayoutDashboard, ShieldAlert, Zap, FileText, Settings, Activity } from 'lucide-react';
-import React, { useState } from 'react';
+import { LayoutDashboard, ShieldAlert, Zap, FileText, Settings, Activity, Server, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import MarketOverview from './pages/MarketOverview';
 import RiskConsole from './pages/RiskConsole';
+import { useEngine } from './context/EngineContext';
 
-const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
-    <div
+const NavItem = ({ icon: Icon, label, active, onClick }) => (
+    <button
         onClick={onClick}
         style={{
-            display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', margin: '4px 0',
-            borderRadius: '8px', cursor: 'pointer',
-            color: active ? '#38bdf8' : '#94a3b8',
-            background: active ? 'rgba(56, 189, 248, 0.1)' : 'transparent',
-            transition: 'all 0.2s'
+            background: active ? 'var(--accent-primary)' : 'transparent',
+            color: active ? '#000' : 'var(--text-primary)',
+            border: 'none',
+            padding: '0 16px',
+            height: '100%',
+            display: 'flex', alignItems: 'center', gap: '8px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            transition: 'all 0.1s'
         }}
     >
-        <Icon size={18} />
-        <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{label}</span>
-    </div>
+        <Icon size={14} />
+        {label}
+    </button>
 );
 
 export default function Layout() {
     const [activeTab, setActiveTab] = useState('overview');
+    const [time, setTime] = useState(new Date());
+    const { status } = useEngine();
+
+    useEffect(() => {
+        const timer = setInterval(() => setTime(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
 
     return (
-        <div style={{ display: 'flex', height: '100vh', background: '#0b0e11', color: '#e2e8f0' }}>
-            <div style={{ width: '260px', background: '#151a21', borderRight: '1px solid #334155', padding: '24px', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '40px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Activity color="#38bdf8" />
-                    <span>NEPSE <span style={{ color: '#38bdf8' }}>PRIME</span></span>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg-primary)' }}>
+            {/* TERMINAL HEADER */}
+            <div style={{
+                height: '40px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)',
+                display: 'flex', alignItems: 'center', padding: '0 0'
+            }}>
+                <div style={{ padding: '0 20px', fontWeight: 900, fontSize: '16px', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Activity size={18} /> FLUX.TERMINAL
                 </div>
-                <div style={{ flex: 1 }}>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, paddingLeft: '16px', marginBottom: '10px', display: 'block' }}>MENU</span>
-                    <SidebarItem icon={LayoutDashboard} label="Market Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
-                    <SidebarItem icon={ShieldAlert} label="Risk Console" active={activeTab === 'risk'} onClick={() => setActiveTab('risk')} />
-                    <SidebarItem icon={Zap} label="Algo Strategies" active={activeTab === 'algo'} onClick={() => setActiveTab('algo')} />
-                    <SidebarItem icon={FileText} label="Compliance Logs" active={activeTab === 'compliance'} onClick={() => setActiveTab('compliance')} />
+                <div style={{ height: '100%', width: '1px', background: 'var(--border)' }}></div>
+
+                <div style={{ display: 'flex', height: '100%' }}>
+                    <NavItem icon={LayoutDashboard} label="Market" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
+                    <NavItem icon={ShieldAlert} label="Risk" active={activeTab === 'risk'} onClick={() => setActiveTab('risk')} />
+                    <NavItem icon={Zap} label="Algo" active={activeTab === 'algo'} onClick={() => setActiveTab('algo')} />
+                    <NavItem icon={FileText} label="Compliance" active={activeTab === 'compliance'} onClick={() => setActiveTab('compliance')} />
                 </div>
-                <div style={{ borderTop: '1px solid #334155', paddingTop: '20px' }}>
-                    <SidebarItem icon={Settings} label="Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
-                </div>
-            </div>
-            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ height: '60px', borderBottom: '1px solid #334155', background: '#151a21', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px' }}>
-                    <div style={{ color: '#94a3b8' }}>Workspace / <span style={{ color: '#e2e8f0' }}>Main Trader</span></div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#334155' }}></div>
+
+                <div style={{ flex: 1 }}></div>
+
+                <div style={{ padding: '0 20px', display: 'flex', alignItems: 'center', gap: '20px', fontSize: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: status === 'CONNECTED' ? 'var(--up)' : 'var(--down)' }}>
+                        <Server size={12} /> {status}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-dim)' }}>
+                        <Clock size={12} /> {time.toLocaleTimeString()}
+                    </div>
+                    <div style={{
+                        width: '24px', height: '24px', background: 'var(--accent-primary)', borderRadius: '2px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontWeight: 'bold'
+                    }}>
+                        W
                     </div>
                 </div>
-                <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
-                    {activeTab === 'overview' && <MarketOverview />}
-                    {activeTab === 'risk' && <RiskConsole />}
-                    {activeTab === 'algo' && <div style={{ padding: '20px', border: '1px dashed #334155', borderRadius: '8px', color: '#64748b' }}>Algo Interface Pending Implementation</div>}
-                    {activeTab === 'compliance' && <div style={{ padding: '20px', border: '1px dashed #334155', borderRadius: '8px', color: '#64748b' }}>Compliance Interface Pending Implementation</div>}
+            </div>
+
+            {/* MAIN CONTENT GRID */}
+            <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+                {activeTab === 'overview' && <MarketOverview />}
+                {activeTab === 'risk' && <RiskConsole />}
+                {activeTab === 'algo' && <div className="mono" style={{ padding: '20px', color: 'var(--text-dim)' }}>// ALGO TRADING MODULE NOT LOADED</div>}
+                {activeTab === 'compliance' && <div className="mono" style={{ padding: '20px', color: 'var(--text-dim)' }}>// COMPLIANCE AUDIT LOGS OFFLINE</div>}
+            </div>
+
+            {/* TICKER FOOTER */}
+            <div style={{ height: '24px', background: 'var(--bg-secondary)', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+                <div style={{ padding: '0 10px', background: 'var(--accent-primary)', color: '#000', fontSize: '10px', fontWeight: 'bold', height: '100%', display: 'flex', alignItems: 'center' }}>
+                    NOTIFICATIONS
+                </div>
+                <div className="mono" style={{ padding: '0 10px', fontSize: '11px', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
+                    SYSTEM: Connected to Flux Core v1.0.0 [ws://localhost:9000] ... DATA FEED STABLE ... LATENCY: 2ms
                 </div>
             </div>
         </div>

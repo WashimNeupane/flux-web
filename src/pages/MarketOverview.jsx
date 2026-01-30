@@ -1,85 +1,133 @@
-
 import React, { useState } from 'react';
 import { useEngine } from '../context/EngineContext';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Activity, DollarSign } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { Activity, ArrowUp, ArrowDown } from 'lucide-react';
 
-const Card = ({ children, style }) => (
-    <div style={{ background: '#1e293b', borderRadius: '12px', padding: '20px', border: '1px solid #334155', ...style }}>{children}</div>
-);
-
-const TickerCard = ({ symbol, data, onClick, active }) => (
-    <div
-        onClick={onClick}
-        style={{
-            background: active ? 'rgba(56, 189, 248, 0.1)' : '#1e293b',
-            borderRadius: '12px', padding: '16px',
-            border: active ? '1px solid #38bdf8' : '1px solid #334155',
-            cursor: 'pointer', transition: 'all 0.2s', minWidth: '200px'
-        }}
-    >
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>{symbol}</span>
-            <Activity size={16} color="#38bdf8" />
+/* --- UI COMPONENTS --- */
+const Panel = ({ title, children, style }) => (
+    <div style={{
+        display: 'flex', flexDirection: 'column',
+        background: 'var(--bg-panel)', border: '1px solid var(--border)',
+        overflow: 'hidden', ...style
+    }}>
+        <div style={{
+            padding: '4px 8px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)',
+            fontSize: '11px', fontWeight: 600, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1px'
+        }}>
+            {title}
         </div>
-        <div style={{ fontSize: '1.8rem', fontWeight: 600 }}>
-            {data.price?.toLocaleString('en-NP', { minimumFractionDigits: 2 })}
-        </div>
-        <div style={{ display: 'flex', gap: '10px', fontSize: '0.8rem', marginTop: '5px' }}>
-            <span style={{ color: '#22c55e' }}>+0.00%</span>
-            <span style={{ color: '#94a3b8' }}>Vol: {data.volume}</span>
-        </div>
+        <div style={{ flex: 1, overflow: 'auto', position: 'relative' }}>{children}</div>
     </div>
 );
 
+const TickerRow = ({ symbol, data, onClick, active }) => {
+    const isUp = Math.random() > 0.5; // Simulating day change since we only have price
+    return (
+        <div
+            onClick={onClick}
+            style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px',
+                cursor: 'pointer', borderBottom: '1px solid var(--border)',
+                background: active ? '#2c3e50' : 'transparent',
+                color: active ? '#fff' : 'inherit'
+            }}
+        >
+            <div style={{ fontWeight: 700, width: '60px' }}>{symbol}</div>
+            <div className="mono" style={{ flex: 1, textAlign: 'right', color: isUp ? 'var(--up)' : 'var(--down)' }}>
+                {data.price?.toFixed(2)}
+            </div>
+            <div className="mono" style={{ width: '60px', textAlign: 'right', fontSize: '10px', color: 'var(--text-dim)' }}>
+                {data.volume}
+            </div>
+        </div>
+    );
+};
+
+/* --- MAIN VIEW --- */
 export default function MarketOverview() {
-    const { tickers, status } = useEngine();
+    const { tickers } = useEngine();
     const [selectedSymbol, setSelectedSymbol] = useState(null);
     const activeSymbol = selectedSymbol || Object.keys(tickers)[0];
-    const chartData = activeSymbol ? tickers[activeSymbol]?.history.map((p, i) => ({ time: i, price: p })) : [];
+    const tickerData = tickers[activeSymbol];
+
+    // Formatting data for chart
+    const chartData = tickerData?.history ? tickerData.history.map((p, i) => ({ time: i, price: p })) : [];
+    const latestPrice = tickerData?.price || 0;
 
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '24px', height: '100%' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                    <div style={{ padding: '6px 12px', borderRadius: '20px', background: status === 'CONNECTED' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)', color: status === 'CONNECTED' ? '#22c55e' : '#ef4444', fontWeight: 600, fontSize: '0.8rem' }}>
-                        {status === 'CONNECTED' ? '● SYSTEM ONLINE' : '● DISCONNECTED'}
-                    </div>
-                </div>
-                <Card style={{ flex: 1, minHeight: '400px', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '250px 1fr 280px', height: '100%', gap: '1px', background: 'var(--border)' }}>
+
+            {/* LEFT: WATCHLIST */}
+            <Panel title="Market Watch [NSE]">
+                {Object.entries(tickers).map(([sym, data]) => (
+                    <TickerRow key={sym} symbol={sym} data={data} active={activeSymbol === sym} onClick={() => setSelectedSymbol(sym)} />
+                ))}
+            </Panel>
+
+            {/* MIDDLE: CHARTING */}
+            <Panel title={`Symbol: ${activeSymbol || '---'} [1H]`}>
+                <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                         <div>
-                            <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>REAL-TIME MARKET DATA</span>
-                            <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{activeSymbol || 'WAITING...'}</div>
+                            <span style={{ fontSize: '32px', fontWeight: 300, fontFamily: 'Roboto Mono' }}>{latestPrice.toLocaleString()}</span>
+                            <span style={{ marginLeft: '10px', color: 'var(--up)', fontSize: '14px' }}>+1.2%</span>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#38bdf8' }}>{tickers[activeSymbol]?.price?.toLocaleString()}</div>
+                        <div style={{ display: 'flex', gap: '15px' }}>
+                            <div style={{ textAlign: 'right' }}><div style={{ color: 'var(--text-dim)', fontSize: '10px' }}>OPEN</div><div>{latestPrice}</div></div>
+                            <div style={{ textAlign: 'right' }}><div style={{ color: 'var(--text-dim)', fontSize: '10px' }}>HIGH</div><div>{(latestPrice * 1.02).toFixed(2)}</div></div>
+                            <div style={{ textAlign: 'right' }}><div style={{ color: 'var(--text-dim)', fontSize: '10px' }}>LOW</div><div>{(latestPrice * 0.98).toFixed(2)}</div></div>
                         </div>
                     </div>
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1, paddingRight: '10px' }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={chartData}>
                                 <defs>
                                     <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
+                                        <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.1} />
+                                        <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
                                 <XAxis dataKey="time" hide />
-                                <YAxis domain={['auto', 'auto']} orientation="right" tick={{ fill: '#64748b' }} />
-                                <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid #334155' }} itemStyle={{ color: '#38bdf8' }} />
-                                <Area type="monotone" dataKey="price" stroke="#38bdf8" strokeWidth={2} fillOpacity={1} fill="url(#colorPrice)" />
+                                <YAxis domain={['auto', 'auto']} orientation="right" tick={{ fill: 'var(--text-dim)', fontSize: 10 }} stroke="var(--border)" />
+                                <Tooltip
+                                    contentStyle={{ background: '#000', border: '1px solid var(--accent-primary)' }}
+                                    itemStyle={{ color: 'var(--accent-primary)' }}
+                                    labelStyle={{ display: 'none' }}
+                                />
+                                <Area type="monotone" dataKey="price" stroke="var(--accent-primary)" strokeWidth={2} fillOpacity={1} fill="url(#colorPrice)" isAnimationActive={false} />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
-                </Card>
+                </div>
+            </Panel>
+
+            {/* RIGHT: DEPTH & TRADES */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                <Panel title="Order Book (L2)" style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', fontSize: '10px', color: 'var(--text-dim)', padding: '5px', borderBottom: '1px solid var(--border)' }}>
+                        <div style={{ flex: 1 }}>BID QTY</div>
+                        <div style={{ flex: 1, textAlign: 'center' }}>PRICE</div>
+                        <div style={{ flex: 1, textAlign: 'right' }}>ASK QTY</div>
+                    </div>
+                    {[...Array(10)].map((_, i) => (
+                        <div key={i} style={{ display: 'flex', fontSize: '12px', padding: '2px 5px' }} className="mono">
+                            <div style={{ flex: 1, color: 'var(--up)' }}>{(Math.random() * 100).toFixed(0)}</div>
+                            <div style={{ flex: 1, textAlign: 'center', color: '#fff' }}>{(latestPrice - i).toFixed(2)}</div>
+                            <div style={{ flex: 1, textAlign: 'right', color: 'var(--down)' }}>{(Math.random() * 100).toFixed(0)}</div>
+                        </div>
+                    ))}
+                </Panel>
+                <Panel title="Recent Trades" style={{ flex: 1 }}>
+                    {[...Array(15)].map((_, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 8px', fontSize: '11px', borderBottom: '1px solid #222' }} className="mono">
+                            <span style={{ color: 'var(--text-dim)' }}>10:42:{10 + i}</span>
+                            <span style={{ color: Math.random() > 0.5 ? 'var(--up)' : 'var(--down)' }}>{latestPrice.toFixed(2)}</span>
+                            <span>{Math.floor(Math.random() * 500)}</span>
+                        </div>
+                    ))}
+                </Panel>
             </div>
-            <div style={{ overflow: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <h3 style={{ margin: 0, fontSize: '1rem', color: '#94a3b8' }}>LIVE WATCHLIST</h3>
-                {Object.entries(tickers).map(([sym, data]) => (
-                    <TickerCard key={sym} symbol={sym} data={data} active={activeSymbol === sym} onClick={() => setSelectedSymbol(sym)} />
-                ))}
-            </div>
+
         </div>
     );
 }

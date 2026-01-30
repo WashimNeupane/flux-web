@@ -1,30 +1,65 @@
 :root {
-    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-    line-height: 1.5;
+    font-family: 'Roboto Mono', 'Segoe UI Mono', 'Courier New', monospace;
+    line-height: 1.2;
     font-weight: 400;
     color-scheme: dark;
+
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0a;
+    --bg-panel: #111111;
+    --border: #333333;
+    --accent-primary: #ff9f43;
+    /* Bloomberg Amber */
+    --accent-secondary: #00d2d3;
+    /* Cyan */
+    --text-primary: #e0e0e0;
+    --text-dim: #666666;
+    --up: #10ac84;
+    --down: #ee5253;
+    --chart-grid: #222222;
 }
 
 body {
     margin: 0;
-    min-width: 320px;
-    min-height: 100vh;
+    padding: 0;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 12px;
+    overflow: hidden;
 }
 
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #0f172a;
+    background: var(--bg-primary);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #334155;
-    border-radius: 4px;
+    background: var(--border);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #475569;
+    background: var(--accent-primary);
+}
+
+/* Utility Classes */
+.mono {
+    font-family: 'Roboto Mono', monospace;
+    letter-spacing: -0.5px;
+}
+
+.text-up {
+    color: var(--up);
+}
+
+.text-down {
+    color: var(--down);
+}
+
+.glow {
+    text-shadow: 0 0 10px rgba(255, 159, 67, 0.2);
 }
